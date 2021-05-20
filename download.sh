@@ -14,9 +14,12 @@ elif  [ $FILE == "shopee-dataset" ]; then
     wget -N $URL -O $ZIP_FILE
     unzip $ZIP_FILE -d ./data
     rm $ZIP_FILE
+    
+elif  [ $FILE == "preprocess-data" ]; then
+    python preprocess.py
 
 else
-    echo "Available arguments are pretrained-network, and shopee-dataset."
+    echo "Available arguments are pretrained-network, shopee-dataset and preprocess-data."
     exit 1
 
 fi

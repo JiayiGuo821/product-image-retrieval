@@ -15,8 +15,8 @@ elif  [ $FILE == "shopee-dataset" ]; then
     unzip $ZIP_FILE -d ./data
     rm $ZIP_FILE
     
-elif  [ $FILE == "preprocess-data" ]; then
-    python preprocess.py
+elif  [ $FILE == "split-data" ]; then
+    python split_data.py
 
 else
     echo "Available arguments are pretrained-network, shopee-dataset and preprocess-data."

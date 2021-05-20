@@ -20,10 +20,11 @@ conda activate product-image-retrieval
 pip3 install -r requirement.txt
 ```
 ## Dataset and pretrained network
-We provide a script to download dataset and the corresponding pre-trained network to reproduce our best results. The dataset and network checkpoint will be downloaded and stored in the data and expr/checkpoints directories, respectively.
+We provide a script to download dataset and pre-trained network to reproduce our best results. The splitted data and network checkpoint will be downloaded and stored in the data/splitted and expr/checkpoints directories, respectively.
 
 ```
 bash download.sh shopee-dataset
+bash download.sh split-data
 bash download.sh pretrained-network # not available yet
 ```
 

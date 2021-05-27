@@ -17,7 +17,7 @@ Install the dependencies:
 ```
 conda create -n product-image-retrieval python=3.6.7
 conda activate product-image-retrieval
-pip install -r requirement.txt
+pip install -r requirements.txt
 ```
 ## Dataset and pretrained network
 We provide a script to download dataset and pre-trained network to reproduce our best results. The splitted data and network checkpoint will be downloaded and stored in the data/splitted and expr/checkpoints directories, respectively.

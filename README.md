@@ -32,6 +32,8 @@ bash download.sh pretrained-network # not available yet
 
 
 ### Training
+
+#### MoCo v2 
 Assume you have at least 4 GPUs.
 
 ```
@@ -78,17 +80,31 @@ python convert_and_eval.py --model cdnv2_a/b/c \
 
 ### Results on Text
 
+| Model | F1 score | AUC | mAP |
+|---|---|---|---|
+| MoCo v2 | 46M | 2.0M | 35.6 |
+
+### Results on Image
+
+| Model | F1 score | AUC | mAP |
+|---|---|---|---|
+| MoCo v2 | 46M | 2.0M | 35.6 |
+
+### Results on Image & Text
+
+| Model | F1 score | AUC | mAP |
+|---|---|---|---|
+| MoCo v2 | 46M | 2.0M | 35.6 |
+
+
+### Results on COCO2017 Detection
+
 | Model | FLOPs | Params | Top-1 Error | Tsinghua Cloud | Google Drive |
 |---|---|---|---|---|---|
 | CondenseNetV2-A | 46M | 2.0M | 35.6 | [Download](https://cloud.tsinghua.edu.cn/smart-link/34933e0e-565b-4633-b1ea-a5266d3d3fcc/) | [Download](https://drive.google.com/file/d/1fhHeAGkdZnOEgv9f-IUCy_uNfc-QHcZ_/view?usp=sharing) |
 | CondenseNetV2-B | 146M | 3.6M | 28.1 | [Download](https://cloud.tsinghua.edu.cn/smart-link/444627eb-a296-458e-9a44-db38aca8a761/) | [Download](https://drive.google.com/file/d/1xFR3GcV1tsGq4tHhPS50XCW7AMnfWs6E/view?usp=sharing) |
 | CondenseNetV2-C | 309M | 6.1M | 24.1 | [Download](https://cloud.tsinghua.edu.cn/smart-link/4625ac39-54b2-48c1-bcbd-c6d21a6b42fa/) | [Download](https://drive.google.com/file/d/1QaK-5KtVeK-d6ip8RMJhJ87dVmPAnWEA/view?usp=sharing) |
 
-### Results on Image
-
-### Results on Image & Text
-
-### Results on COCO2017 Detection
 The detection experiments are conducted based on the [mmdetection repository](https://github.com/open-mmlab/mmdetection). We simply replace the backbones of FasterRCNN and RetinaNet with our CondenseNetV2s.
 
 | Detection Framework | Backbone | Backbone FLOPs | mAP |

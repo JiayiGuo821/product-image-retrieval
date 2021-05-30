@@ -14,7 +14,7 @@ git clone https://github.com/JiayiGuo821/product-image-retrieval.git
 cd product-image-retrieval/
 ```
 
-Or if you are the TA, just unzip our submitted zip file and run
+or if you are the TA, just unzip our submitted zip file and run
 ```
 cd code/
 ```

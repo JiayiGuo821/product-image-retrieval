@@ -32,13 +32,15 @@ bash download.sh pretrained-network # not available yet
 
 
 ### Training
-As an example, use the following command to train a CondenseNetV2-A/B/C on ImageNet
+Assume you have at least 4 GPUs.
 
 ```
-python -m torch.distributed.launch --nproc_per_node=8 train.py --model cdnv2_a/b/c 
-  --batch-size 1024 --lr 0.4 --warmup-lr 0.1 --warmup-epochs 5 --opt sgd --sched cosine \
-  --epochs 350 --weight-decay 4e-5 --aa rand-m9-mstd0.5 --remode pixel --reprob 0.2 \
-  --data_url /PATH/TO/IMAGENET --train_url /PATH/TO/LOG_DIR
+CUDA_VISIBLE_DEVICES=0,1,2,3 python main_pt.py \
+  -a resnet50 \
+  --lr 0.015 \
+  --batch-size 128 \
+  --dist-url 'tcp://localhost:20001' --multiprocessing-distributed --world-size 1 --rank 0 --mlp --moco-t 0.2 --aug-plus --cos -j 16\
+  ./data
 ```
 
 
@@ -74,13 +76,17 @@ python convert_and_eval.py --model cdnv2_a/b/c \
 
 ## Results
 
-### Results on ImageNet
+### Results on Text
 
 | Model | FLOPs | Params | Top-1 Error | Tsinghua Cloud | Google Drive |
 |---|---|---|---|---|---|
 | CondenseNetV2-A | 46M | 2.0M | 35.6 | [Download](https://cloud.tsinghua.edu.cn/smart-link/34933e0e-565b-4633-b1ea-a5266d3d3fcc/) | [Download](https://drive.google.com/file/d/1fhHeAGkdZnOEgv9f-IUCy_uNfc-QHcZ_/view?usp=sharing) |
 | CondenseNetV2-B | 146M | 3.6M | 28.1 | [Download](https://cloud.tsinghua.edu.cn/smart-link/444627eb-a296-458e-9a44-db38aca8a761/) | [Download](https://drive.google.com/file/d/1xFR3GcV1tsGq4tHhPS50XCW7AMnfWs6E/view?usp=sharing) |
 | CondenseNetV2-C | 309M | 6.1M | 24.1 | [Download](https://cloud.tsinghua.edu.cn/smart-link/4625ac39-54b2-48c1-bcbd-c6d21a6b42fa/) | [Download](https://drive.google.com/file/d/1QaK-5KtVeK-d6ip8RMJhJ87dVmPAnWEA/view?usp=sharing) |
+
+### Results on Image
+
+### Results on Image & Text
 
 ### Results on COCO2017 Detection
 The detection experiments are conducted based on the [mmdetection repository](https://github.com/open-mmlab/mmdetection). We simply replace the backbones of FasterRCNN and RetinaNet with our CondenseNetV2s.

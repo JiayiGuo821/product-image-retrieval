@@ -14,9 +14,9 @@ git clone https://github.com/JiayiGuo821/product-image-retrieval.git
 cd product-image-retrieval/
 ```
 
-or if you are the TA, just unzip our submitted zip file and run
+or if you are the TA, just unzip our submitted zip file and run:
 ```
-cd code/
+cd codes/
 ```
 
 Install the dependencies:
@@ -31,10 +31,10 @@ We provide a script to download dataset and pre-trained network to reproduce our
 ```
 bash download.sh shopee-dataset
 bash download.sh split-data
-bash download.sh pretrained-network # not available yet
+bash download.sh pretrained-network
 ```
 
-## Usage
+## Reproduce our best results
 
 
 ### Training
@@ -43,44 +43,31 @@ bash download.sh pretrained-network # not available yet
 Assume you have at least 4 GPUs.
 
 ```
-CUDA_VISIBLE_DEVICES=0,1,2,3 python main_pt.py \
+CUDA_VISIBLE_DEVICES=0,1,2,3 python train_moco.py \
   -a resnet50 \
   --lr 0.015 \
   --batch-size 128 \
   --dist-url 'tcp://localhost:20001' --multiprocessing-distributed --world-size 1 --rank 0 --mlp --moco-t 0.2 --aug-plus --cos -j 16\
+  --moco-dim 1000 --moco-k 4096\
   ./data
 ```
 
 
 ### Evaluation
-We take the ImageNet model trained above as an example.
 
-To evaluate the non-converted trained model, use `test.py` to evaluate from a given checkpoint path:
-
+Get image features (MoCo v2) from the best checkpoint we provide:
 ```
-python test.py --model cdnv2_a/b/c \
-  --data_url /PATH/TO/IMAGENET -b 32 -j 8 \
-  --train_url /PATH/TO/LOG_DIR \
-  --evaluate_from /PATH/TO/MODEL_WEIGHT
+python test_moco.py -a resnet50 --batch-size 64 --mlp -j 16 -s test --pretrained ./expr/checkpoints/checkpoint_best.pth.tar --moco-dim 1000 --name best ./data
 ```
-
-To evaluate the converted trained model, use `--model converted_cdnv2_a/b/c`:
-
+or from a checkpoint you train:
 ```
-python test.py --model converted_cdnv2_a/b/c \
-  --data_url /PATH/TO/IMAGENET -b 32 -j 8 \
-  --train_url /PATH/TO/LOG_DIR \
-  --evaluate_from /PATH/TO/MODEL_WEIGHT
+python test_moco.py -a resnet50 --batch-size 64 --mlp -j 16 -s test --pretrained ./expr/checkpoints/checkpoint_0024.pth.tar --moco-dim 1000 --name best ./data
+```
+Get text features (Tfidf) and the final metric result:
+```
+python test_predict.py --name moco_best --image_type features_mocobest_test --text_type tfidf --mode test
 ```
 
-Note that these models are still the large models after training. To convert the model to standard group-convolution version as described in the paper, use the `convert_and_eval.py`:
-
-```
-python convert_and_eval.py --model cdnv2_a/b/c \
-  --data_url /PATH/TO/IMAGENET -b 64 -j 8 \
-  --train_url /PATH/TO/LOG_DIR \
-  --convert_from /PATH/TO/MODEL_WEIGHT
-```
 
 ## Results
 
@@ -88,56 +75,31 @@ python convert_and_eval.py --model cdnv2_a/b/c \
 
 | Model | F1 score | AUC | mAP |
 |---|---|---|---|
-| MoCo v2 | 46M | 2.0M | 35.6 |
+| Tfidf | 0.7555 | 0.9931 | 0.8718 |
 
 ### Results on Image
 
 | Model | F1 score | AUC | mAP |
 |---|---|---|---|
-| MoCo v2 | 46M | 2.0M | 35.6 |
+| MoCo v2 | 0.7482 | 0.9923 | 0.8441 |
 
 ### Results on Image & Text
 
 | Model | F1 score | AUC | mAP |
 |---|---|---|---|
-| MoCo v2 | 46M | 2.0M | 35.6 |
+| MoCo v2 + Tfidf | 0.8095 | - | - |
 
 
-### Results on COCO2017 Detection
+## Effects of files not mentioned above
+```
+test_bert.py # compute text features with bert
+train_knn.py # train knn
+train_pca.py # train pca
+test_predict_knn.py # reproduce knn-related results in our report
+test_predict_pca.py # reproduce pca-related results in our report
+datasets.py, models.py, moco\ & nets\ # some utils 
+```
 
-| Model | FLOPs | Params | Top-1 Error | Tsinghua Cloud | Google Drive |
-|---|---|---|---|---|---|
-| CondenseNetV2-A | 46M | 2.0M | 35.6 | [Download](https://cloud.tsinghua.edu.cn/smart-link/34933e0e-565b-4633-b1ea-a5266d3d3fcc/) | [Download](https://drive.google.com/file/d/1fhHeAGkdZnOEgv9f-IUCy_uNfc-QHcZ_/view?usp=sharing) |
-| CondenseNetV2-B | 146M | 3.6M | 28.1 | [Download](https://cloud.tsinghua.edu.cn/smart-link/444627eb-a296-458e-9a44-db38aca8a761/) | [Download](https://drive.google.com/file/d/1xFR3GcV1tsGq4tHhPS50XCW7AMnfWs6E/view?usp=sharing) |
-| CondenseNetV2-C | 309M | 6.1M | 24.1 | [Download](https://cloud.tsinghua.edu.cn/smart-link/4625ac39-54b2-48c1-bcbd-c6d21a6b42fa/) | [Download](https://drive.google.com/file/d/1QaK-5KtVeK-d6ip8RMJhJ87dVmPAnWEA/view?usp=sharing) |
-
-The detection experiments are conducted based on the [mmdetection repository](https://github.com/open-mmlab/mmdetection). We simply replace the backbones of FasterRCNN and RetinaNet with our CondenseNetV2s.
-
-| Detection Framework | Backbone | Backbone FLOPs | mAP |
-|---|---|---|---|
-| FasterRCNN | ShuffleNetV2 0.5x | 41M | 22.1 |
-| FasterRCNN | CondenseNetV2-A | 46M | 23.5 |
-| FasterRCNN | ShuffleNetV2 1.0x | 146M | 27.4 |
-| FasterRCNN | CondenseNetV2-B | 146M | 27.9 |
-| FasterRCNN | MobileNet 1.0x | 300M | 30.6 |
-| FasterRCNN | ShuffleNetV2 1.5x | 299M | 30.2 |
-| FasterRCNN | CondenseNetV2-C | 309M | 31.4 |
-| RetinaNet  | MobileNet 1.0x | 300M | 29.7 |
-| RetinaNet  | ShuffleNetV2 1.5x | 299M | 29.1 |
-| RetinaNet  | CondenseNetV2-C | 309M | 31.7 |
-
-### Results on CIFAR
-
-| Model | FLOPs | Params | CIFAR-10 | CIFAR-100 |
-|---|---|---|---|---|
-| CondenseNet-50 | 28.6M | 0.22M | 6.22 | - |
-| CondenseNet-74 | 51.9M | 0.41M | 5.28 | - |
-| CondenseNet-86 | 65.8M | 0.52M | 5.06 | 23.64 |
-| CondenseNet-98 | 81.3M | 0.65M | 4.83 | - |
-| CondenseNet-110 | 98.2M | 0.79M | 4.63 | - |
-| CondenseNet-122 | 116.7M | 0.95M | 4.48 | - |
-| CondenseNetV2-110 | 41M | 0.48M | 4.65 | 23.94 |
-| CondenseNetV2-146 | 62M | 0.78M | **4.35** | **22.52** |
 
 ## Contacts
 {guo-jy20, dcq20}@mails.tsinghua.edu.cn

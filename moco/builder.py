@@ -1,4 +1,3 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import torch
 import torch.nn as nn
 
@@ -11,7 +10,7 @@ class MoCo(nn.Module):
     def __init__(self, base_encoder, dim=128, K=8192, m=0.999, T=0.07, mlp=False):
         """
         dim: feature dimension (default: 128)
-        K: queue size; number of negative keys (default: 65536)
+        K: queue size; number of negative keys (default: 8192)
         m: moco momentum of updating key encoder (default: 0.999)
         T: softmax temperature (default: 0.07)
         """
@@ -23,7 +22,7 @@ class MoCo(nn.Module):
 
         # create the encoders
         # num_classes is the output fc dimension
-        self.encoder_q = base_encoder(num_classes=dim)
+        self.encoder_q = base_encoder(num_classes=dim, pretrained=True)
         self.encoder_k = base_encoder(num_classes=dim)
 
         if mlp:  # hack: brute-force replacement
@@ -177,15 +176,11 @@ class MoCo_single(nn.Module):
     def __init__(self, base_encoder, dim=128, mlp=False):
         """
         dim: feature dimension (default: 128)
-        K: queue size; number of negative keys (default: 65536)
+        K: queue size; number of negative keys (default: 8192)
         m: moco momentum of updating key encoder (default: 0.999)
         T: softmax temperature (default: 0.07)
         """
         super(MoCo_single, self).__init__()
-
-        # self.K = K
-        # self.m = m
-        # self.T = T
 
         # create the encoders
         # num_classes is the output fc dimension
@@ -195,18 +190,6 @@ class MoCo_single(nn.Module):
         if mlp:  # hack: brute-force replacement
             dim_mlp = self.encoder_q.fc.weight.shape[1]
             self.encoder_q.fc = nn.Sequential(nn.Linear(dim_mlp, dim_mlp), nn.ReLU(), self.encoder_q.fc)
-            # self.encoder_k.fc = nn.Sequential(nn.Linear(dim_mlp, dim_mlp), nn.ReLU(), self.encoder_k.fc)
-
-        # for param_q, param_k in zip(self.encoder_q.parameters(), self.encoder_k.parameters()):
-        #     param_k.data.copy_(param_q.data)  # initialize
-        #     param_k.requires_grad = False  # not update by gradient
-
-        # create the queue
-        # self.register_buffer("queue", torch.randn(dim, K))
-        # self.queue = nn.functional.normalize(self.queue, dim=0)
-        # self.register_buffer("queue_labels", -1 * torch.zeros(K, dtype=torch.long))
-        #
-        # self.register_buffer("queue_ptr", torch.zeros(1, dtype=torch.long))
 
     def forward(self, im_q, title, target):
         """
@@ -220,44 +203,6 @@ class MoCo_single(nn.Module):
         # compute query features
         q = self.encoder_q(im_q)  # queries: NxC
         q = nn.functional.normalize(q, dim=1)
-
-        # compute key features
-        # with torch.no_grad():  # no gradient to keys
-        #     self._momentum_update_key_encoder()  # update the key encoder
-        #
-        #     # shuffle for making use of BN
-        #     im_k, idx_unshuffle = self._batch_shuffle_ddp(im_k)
-        #
-        #     k = self.encoder_k(im_k)  # keys: NxC
-        #     k = nn.functional.normalize(k, dim=1)
-        #
-        #     # undo shuffle
-        #     k = self._batch_unshuffle_ddp(k, idx_unshuffle)
-        #
-        # # compute logits
-        # # Einstein sum is more intuitive
-        # # positive logits: Nx1
-        # l_pos = torch.einsum('nc,nc->n', [q, k]).unsqueeze(-1)
-        # # negative logits: NxK
-        # queue_ = self.queue.clone().detach()
-        # label_ = self.queue_labels.clone().detach()
-        # # k neg
-        # for i in range(queue_.shape[1]):
-        #     if label_[i] in target:
-        #         queue_[:, i] = nn.functional.normalize(torch.randn(queue_.shape[0], 1), dim=0).view(queue_.shape[0],)
-        # l_neg = torch.einsum('nc,ck->nk', [q, queue_])
-        #
-        # # logits: Nx(1+K)
-        # logits = torch.cat([l_pos, l_neg], dim=1)
-        #
-        # # apply temperature
-        # logits /= self.T
-        #
-        # # labels: positive key indicators
-        # labels = torch.zeros(logits.shape[0], dtype=torch.long).cuda()
-        #
-        # # dequeue and enqueue
-        # self._dequeue_and_enqueue(k, target)
 
         return q
 

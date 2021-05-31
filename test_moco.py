@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import argparse
 import builtins
 import os
@@ -28,7 +27,7 @@ import torchvision.models as models
 import torch.utils.data as data
 
 import moco.builder
-
+global feats_batch
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
     and callable(models.__dict__[name]))
@@ -38,7 +37,7 @@ parser.add_argument('data', metavar='DIR',
                     help='path to dataset')
 
 parser.add_argument('-s', '--set', metavar='DIR', default='test',
-                    choices=['valid', 'test'],
+                    choices=['train', 'valid', 'test'],
                     help='valid set or test set')
 
 parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet50',
@@ -65,6 +64,8 @@ parser.add_argument('--moco-dim', default=128, type=int,
 # options for moco v2
 parser.add_argument('--mlp', action='store_true',
                     help='use mlp head')
+parser.add_argument('--name', default='', type=str,
+                    help='experiment name')
 
 class product_image_retrieval(data.Dataset):
     def __init__(self, root, mode='train', debug=False, transform=None):
@@ -88,11 +89,8 @@ class product_image_retrieval(data.Dataset):
             data = data.iloc[:20]
         corpus = list(data['title'])
         vector = TfidfVectorizer()
-        print('preparing tfidf...')
         tfidf = vector.fit_transform(corpus)
         self.weightlist = tfidf.toarray()
-        np.save(os.path.join(self.root, 'splitted', mode + '_tfidf.npy'), self.weightlist)
-        print('tfidf ready...')
         data['image'] = data['image'].apply(lambda image: os.path.join(self.root, 'train_images', image))
         vc = list(set(data['label_group']))
         vc.sort()
@@ -163,8 +161,7 @@ def main():
         datadir,
         args.set,
         transform=transforms.Compose([
-            transforms.RandomResizedCrop(224),
-            transforms.RandomHorizontalFlip(),
+            transforms.Resize((224, 224)),
             transforms.ToTensor(),
             normalize,
         ]))
@@ -174,9 +171,16 @@ def main():
         num_workers=args.workers, pin_memory=True, drop_last=False)
 
     length_dir = len(pd.read_csv(os.path.join(datadir, 'splitted', args.set) + '.csv'))
-    feats = np.zeros((length_dir, args.moco_dim))
-
+    feats = np.zeros((length_dir, 2048))#args.moco_dim))
     model.eval()
+
+    def hook(module, input, output):
+        feats_batch = output.cpu().numpy()
+        for idx in range(len(index)):
+            feats[index[idx], :] = feats_batch[idx, :].reshape(2048,)
+
+    model.encoder_q.avgpool.register_forward_hook(hook)
+
     for i, samples in tqdm(enumerate(loader)):
         if args.gpu is not None:
             img = samples['img'].cuda(args.gpu, non_blocking=True)
@@ -184,12 +188,9 @@ def main():
             target = samples['target'].cuda(args.gpu, non_blocking=True)
             index = samples['index'].cuda(args.gpu, non_blocking=True)
 
-        feats_batch = model(im_q=img, title=title, target=target).cpu().numpy()
+        model(im_q=img, title=title, target=target)
 
-        for idx in range(len(index)):
-            feats[index[idx], :] = feats_batch[idx, :]
-
-    np.save('expr/feats_' + args.set + '.npy', feats)
+    np.save('expr/features_moco' + args.name + '_' + args.set + '.npy', feats)
 
 if __name__ == '__main__':
     main()
